@@ -1,29 +1,28 @@
-#ifndef IVTENTRY
-#define IVTENTRY
+#ifndef _ivtentry_h_
+#define _ivtentry_h_
 
 #include "helper.h"
 
-#define PREPAREENTRY(ivtno, callold)                            \
-        void interrupt newIntr##ivtno(...);                     \
-        IVTEntry newEntry##ivtno(ivtno, newIntr##ivtno);        \
-        void interrupt newIntr##ivtno(...) {                    \
-            newEntry##ivtno.signal();                           \
-            if (callold == 1) newEntry##ivtno.routine();        \
-}
+#define PREPAREENTRY(ivtNum, callOld)								\
+		extern IVTEntry ivtEntry##ivtNum;							\
+		void interrupt interruptEvent##ivtNum(...) {				\
+			ivtEntry##ivtNum.signal();								\
+			if (callOld) ivtEntry##ivtNum.oldRoutine();				\
+			dispatch();												\
+		}															\
+		IVTEntry ivtEntry##ivtNum(ivtNum, interruptEvent##ivtNum);	\
 
 class IVTEntry {
 public:
-	static IVTEntry *table[256];
+    static IVTEntry *table[256];
 
-	IVTNo ivtno;
-	pInterrupt routine;
-	KernelEv *kernelev;
+    IVTNo ivtNo;
+    KernelEv *kernelev;
+    pInterrupt oldRoutine;
 
-	IVTEntry(IVTNo ivtno, pInterrupt routineNew);
+    IVTEntry(IVTNo num, pInterrupt newRoutine);
+    ~IVTEntry();
 
-	~IVTEntry();
-
-	void signal();
+    void signal();
 };
-
 #endif

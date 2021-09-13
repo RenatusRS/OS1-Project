@@ -4,10 +4,10 @@ volatile PCB *PCB::running = nullptr;
 volatile Vector<PCB *> PCB::threads;
 volatile ID PCB::globalID = 0;
 
-PCB::PCB(StackSize stackSize, Time timeSlice, Thread *thread, void (*target)(), State state) :
-		state(state),
+PCB::PCB(StackSize stackSize, Time timeSlice, Thread *thread, void (*target)()) :
+		state(INITIALIZING),
 		PCBlocks(0),
-		unblTime(false),
+		semaphorSignaled(false),
 		thread(thread),
 		timerPasses(timeSlice),
 		semaphorTime(0),
@@ -31,8 +31,7 @@ PCB::PCB(StackSize stackSize, Time timeSlice, Thread *thread, void (*target)(), 
 	lock;
 
 	id = globalID++;
-
-	if (state != IDLE) threads.pushf(this);
+	threads.pushf(this);
 
 	unlock;
 }
@@ -44,7 +43,7 @@ PCB::PCB() : stack(nullptr), thread(nullptr) {
 	state = RUNNING;
 	timerPasses = defaultTimeSlice;
 
-	unblTime = false;
+	semaphorSignaled = false;
 	semaphorTime = semaphorLeft = 0;
 
 	lock;
@@ -56,11 +55,9 @@ PCB::PCB() : stack(nullptr), thread(nullptr) {
 }
 
 PCB::~PCB() {
-	if (state == IDLE) return;
-
 	lock;
 
-	delete[] stack;
+	if (stack != nullptr) delete[] stack;
 
 	for (--threads; threads.get() != this; threads++);
 	threads.remove();
@@ -71,10 +68,8 @@ PCB::~PCB() {
 void PCB::start() {
 	lock;
 
-	if (state == INITIALIZING) {
-		state = READY;
-		Scheduler::put(this);
-	}
+	state = READY;
+	Scheduler::put(this);
 
 	unlock;
 }
@@ -85,9 +80,10 @@ void PCB::worker() {
 
 	lock;
 
-	while (running->waitingForMe.size != 0) {
+	while (running->waitingForMe.size) {
 		PCB *releasePCB = running->waitingForMe.popb();
-		releasePCB->unblock();
+		releasePCB->state = READY;
+		Scheduler::put((PCB*) releasePCB);
 	}
 
 	running->state = TERMINATING;
@@ -101,14 +97,14 @@ void idling() {
 }
 
 PCB *PCB::idler() {
-	static PCB idle(256, 1, nullptr, idling, IDLE);
+	static PCB idle(256, 1, nullptr, idling);
 	return &idle;
 }
 
 void PCB::waitToComplete() {
 	lock;
 
-	if (PCB::running != this && state != TERMINATING && state != INITIALIZING && state != IDLE) {
+	if (PCB::running != this && state != TERMINATING && state != INITIALIZING) {
 		PCB::running->state = SUSPENDED;
 		waitingForMe.pushb((PCB *) PCB::running);
 		dispatch();
@@ -128,19 +124,3 @@ Thread *PCB::getThreadById(ID id) {
 	unlock;
 	return nullptr;
 }
-
-void PCB::unblock() {
-	lock;
-
-	state = READY;
-	Scheduler::put(this);
-
-	unlock;
-}
-
-void PCB::block() {
-	lock;
-	state = SUSPENDED;
-	unlock;
-}
-

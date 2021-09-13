@@ -1,11 +1,11 @@
-#ifndef KEREVENT_H
-#define KEREVENT_H
+#ifndef _kernelev_h_
+#define _kernelev_h_
 
 #include "helper.h"
 
 class KernelEv {
 	IVTNo ivtNo;
-	bool val;
+	bool blocked;
 	PCB *pcb;
 
 public:

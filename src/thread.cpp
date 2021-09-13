@@ -7,8 +7,6 @@ Thread::Thread(StackSize stackSize, Time timeSlice) {
 }
 
 Thread::~Thread() {
-	waitToComplete();
-
 	lock;
 	delete myPCB;
 	unlock;

@@ -23,7 +23,7 @@ void restore() {
 
 void interrupt timer(...){
 	if (!call) {
-		(*ttimer)();
+		ttimer();
 		KernelSem::decrease();
 		tick();
 
@@ -31,8 +31,7 @@ void interrupt timer(...){
 	}
 
 	if (call || (timeLeft == 0 && locks == 0 && PCB::running->timerPasses != 0)) {
-		call = false;
-		queuedContext = false;
+		call = contextReady = false;
 
 		move tsp, sp;
 		move tss, ss;
@@ -52,7 +51,6 @@ void interrupt timer(...){
 		else PCB::running->state = RUNNING;
 
 		timeLeft = PCB::running->timerPasses;
-
 		tsp = PCB::running->sp;
 		tss = PCB::running->ss;
 		tbp = PCB::running->bp;
@@ -62,5 +60,5 @@ void interrupt timer(...){
 		move ss, tss;
 		move bp, tbp;
 
-	} else if (timeLeft == 0 && locks > 0) queuedContext = true;
+	} else if (timeLeft == 0 && locks > 0) contextReady = true;
 }

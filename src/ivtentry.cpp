@@ -1,18 +1,18 @@
 #include "helper.h"
 
-IVTEntry *IVTEntry::table[256];
+IVTEntry* IVTEntry::table[256] = {nullptr};
 
-IVTEntry::IVTEntry(IVTNo ivtno, pInterrupt routineNew) : ivtno(ivtno), kernelev(nullptr), routine(getvect(ivtno)) {
-	intd;
-	setvect(ivtno, routineNew);
-	table[ivtno] = this;
+IVTEntry::IVTEntry(IVTNo ivtNo, pInterrupt newRoutine) : ivtNo(ivtNo), kernelev(nullptr), oldRoutine(getvect(ivtNo))  {
+    intd;
+    setvect(ivtNo, newRoutine);
+	table[ivtNo] = this;
 	inte;
 }
 
 IVTEntry::~IVTEntry() {
-	intd;
-	setvect(ivtno, routine);
-	inte;
+    intd;
+    setvect(ivtNo, oldRoutine);
+    inte;
 }
 
 void IVTEntry::signal() {

@@ -24,13 +24,12 @@
 typedef void interrupt(*pInterrupt)(...);
 
 #define lock locks++
-#define unlock if (--locks == 0 && queuedContext == true) { dispatch(); }
-
+#define unlock if (--locks == 0 && contextReady) { dispatch(); }
 
 // Externs
 
 extern volatile int locks;
-extern volatile bool queuedContext;
+extern volatile bool contextReady;
 extern volatile bool call;
 
 // Functions

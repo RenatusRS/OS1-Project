@@ -1,10 +1,10 @@
-#ifndef PCB_H
-#define PCB_H
+#ifndef _pcb_h_
+#define _pcb_h_
 
 #include "helper.h"
 
 enum State {
-	INITIALIZING, READY, RUNNING, SUSPENDED, TERMINATING, IDLE
+	INITIALIZING, READY, RUNNING, SUSPENDED, TERMINATING
 };
 
 class PCB {
@@ -28,23 +28,19 @@ public:
 	int timerPasses;
 	State state;
 
-	bool unblTime;
+	bool semaphorSignaled;
 	Time semaphorTime;
 	Time semaphorLeft;
 
 	PCB();
 
-	PCB(StackSize stackSize, Time timeSlice, Thread *thread, void (*targer)() = PCB::worker, State state = INITIALIZING);
+	PCB(StackSize stackSize, Time timeSlice, Thread *thread, void (*target)() = PCB::worker);
 
 	~PCB();
 
 	void waitToComplete();
 
 	void start();
-
-	void unblock();
-
-	void block();
 
 	static Thread *getThreadById(ID id);
 

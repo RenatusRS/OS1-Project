@@ -17,11 +17,7 @@ KernelSem::~KernelSem() {
 
 	lock;
 
-	for (--semaphores; semaphores.get() != this; semaphores++) {
-		// cout << "sem loop" << endl;
-	}
-
-	//cout << "sem out" << endl;
+	for (--semaphores; semaphores.get() != this; semaphores++);
 	semaphores.remove();
 
 	unlock;
@@ -31,9 +27,8 @@ int KernelSem::wait(Time maxTimeToWait) {
 	//syncPrintf("KernelSem wait start\n");
 
 	lock;
-	bool value = true;
 
-	PCB::running->unblTime = false;
+	PCB::running->semaphorSignaled = false;
 
 	if (--val < 0) {
 		// syncPrintf("\n\nThread blocked %d\n\n",PCB::running->id);
@@ -43,13 +38,12 @@ int KernelSem::wait(Time maxTimeToWait) {
 
 		dispatch();
 	}
-	if (PCB::running->unblTime == true) value = false;
 
 	unlock;
 
 	//syncPrintf("KernelSem wait end %d %d %d\n", maxTimeToWait, value, val);
 
-	return value;
+	return PCB::running->semaphorSignaled;
 }
 
 void KernelSem::signal() {
@@ -61,7 +55,7 @@ void KernelSem::signal() {
 		PCB *temp = block.popb();
 		// syncPrintf("\n\nThread unblocked %d\n\n",temp->id);
 		temp->state = READY;
-		temp->unblTime = false;
+		temp->semaphorSignaled = true;
 		Scheduler::put(temp);
 	}
 
@@ -79,8 +73,6 @@ void KernelSem::decrease() {
 			if (pcb->semaphorTime != 0 && --pcb->semaphorLeft == 0) {
 				// syncPrintf("\n\nThread unblocked %d\n\n",pcb->id);
 				pcb->state = READY;
-				pcb->semaphorTime = 0;
-				pcb->unblTime = true;
 				semaphore->block.remove();
 				Scheduler::put(pcb);
 

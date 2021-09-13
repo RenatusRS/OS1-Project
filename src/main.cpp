@@ -1,4 +1,5 @@
 #include "helper.h"
+#define Test15
 
 #ifdef Test1
 /*
@@ -651,7 +652,7 @@ void tick()
 int userMain(int argc, char** argv)
 {
 	syncPrintf("Test starts.\n");
-	TestThread t1(15),t2(10),t3(30);
+	TestThread t1(15),t2(3),t3(30);
 	t1.start();
 	t2.start();
 	t3.start();
@@ -708,6 +709,7 @@ void tick()
 		*/
 }
 
+
 #include <iostream.h>
 
 Semaphore* mutex = 0;
@@ -720,16 +722,17 @@ public:
 
 	void run()
 	{
-		for (long i = 0; i < 100000; i++)
+		for (int i = 0; i < 30000; i++)
 		{
-			if (mutex->wait(n)) {
-				cout << znak;
+			if (!mutex->wait(n)) {
+				//cout << znak;
 				mutex->signal();
 			}
 
+
 		}
 
-		if (mutex->wait(n)) {
+		if (!mutex->wait(n)) {
 			cout << endl << znak << " finished" << endl;
 			mutex->signal();
 		}
@@ -741,12 +744,13 @@ private:
 
 };
 
+
 int userMain(int argc, char* argv[]) {
 	mutex = new Semaphore(1);
 
 	Znak* a = new Znak('a', 10);
 	Znak* b = new Znak('b', 15);
-	Znak* c = new Znak('c', 20);
+	Znak* c = new Znak('c', 30);
 
 	a->start();
 	b->start();
@@ -860,7 +864,7 @@ public:
 		// for (long i = 0; i < 100000; i++)
 		for (int i = 0; i < n; i++)
 		{
-			if (mutex->wait(1)) {
+			if (!mutex->wait(1)) {
 				cout << znak;
 				mutex->signal();
 			}
@@ -873,7 +877,7 @@ public:
 			// dispatch();
 		}
 
-		if (mutex->wait(1)) {
+		if (!mutex->wait(1)) {
 			cout << endl << znak << " finished" << endl;
 			mutex->signal();
 		}
@@ -894,22 +898,22 @@ public:
 		Event e(9);
 
 		for (int i = 0; i < n; i++) {
-			if (mutex->wait(1)) {
+			if (!mutex->wait(1)) {
 				cout << endl << "key waiting " << (i + 1) << endl;
 				mutex->signal();
 			}
 
 			e.wait();
 
-			if (mutex->wait(1)) {
+			if (!mutex->wait(1)) {
 				cout << endl << "key continue " << (i + 1) << endl;
 				mutex->signal();
 			}
 
-			sleepSem->wait(5);
+			//sleepSem->wait(5);
 		}
 
-		if (mutex->wait(1)) {
+		if (!mutex->wait(1)) {
 			cout << endl << "key finished" << endl;
 			mutex->signal();
 		}
@@ -926,8 +930,8 @@ int userMain(int argc, char* argv[]) {
 
 	Znak* a = new Znak('a', 10);
 	Znak* b = new Znak('b', 15);
-	Znak* c = new Znak('c', 20);
-	Key* k = new Key(150);
+	Znak* c = new Znak('c', 40);
+	Key* k = new Key(100);
 
 	a->start();
 	b->start();
@@ -989,7 +993,7 @@ int userMain(int argc, char** argv)
 	Test: Niti maxStack velicine
 */
 
-const int n = 2;
+const int n = 12;
 
 void tick(){}
 

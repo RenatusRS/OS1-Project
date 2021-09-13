@@ -1,5 +1,5 @@
-#ifndef TIMER_H
-#define TIMER_H
+#ifndef _timer_h_
+#define _timer_h_
 
 void inic();
 void restore();

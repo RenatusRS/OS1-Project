@@ -1,7 +1,7 @@
 #include "helper.h"
 
 volatile int locks = 0;
-volatile bool queuedContext = false;
+volatile bool contextReady = false;
 volatile bool call = false;
 
 int syncPrintf(const char *format, ...) {
