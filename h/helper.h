@@ -19,8 +19,6 @@
 #define intd asm { pushf; cli; }
 #define inte asm popf
 
-#define move asm mov
-
 typedef void interrupt(*pInterrupt)(...);
 
 #define lock locks++

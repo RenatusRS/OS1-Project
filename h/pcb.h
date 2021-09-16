@@ -4,7 +4,7 @@
 #include "helper.h"
 
 enum State {
-	INITIALIZING, READY, RUNNING, SUSPENDED, TERMINATING
+	INITIALIZING, READY, RUNNING, SUSPENDED, TERMINATING, CHILD_SUSPENDED
 };
 
 class PCB {
@@ -15,7 +15,7 @@ public:
 	volatile static PCB *running;
 	volatile static Vector<PCB *> threads;
 
-	Vector<PCB *> waitingForMe;
+	Vector<PCB*> waitingForMe;
 
 	unsigned *stack;
 	unsigned sp;
@@ -47,6 +47,19 @@ public:
 	static void worker();
 
 	static PCB *idler();
+
+	// Fork
+
+	StackSize stackSize;
+	PCB* parent;
+	int children;
+	static PCB* forkChild;
+
+	static void exit();
+
+	static void waitForForkChildren();
+
+	static void interrupt fork();
 };
 
 #endif

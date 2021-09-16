@@ -27,13 +27,13 @@ public:
 
 	// Fork
 
-	// static ID fork();
+	static ID fork();
 
-	// static void exit();
+	static void exit();
 
-	// static void waitForForkChildren();
+	static void waitForForkChildren();
 
-	// virtual Thread* clone() const;
+	virtual Thread* clone() const;
 
 protected:
 	friend class PCB;

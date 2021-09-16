@@ -1,9 +1,6 @@
 #include "helper.h"
 
 pInterrupt ttimer;
-unsigned tsp;
-unsigned tss;
-unsigned tbp;
 volatile int timeLeft = defaultTimeSlice;
 
 void tick();
@@ -33,13 +30,9 @@ void interrupt timer(...){
 	if (call || (timeLeft == 0 && locks == 0 && PCB::running->timerPasses != 0)) {
 		call = contextReady = false;
 
-		move tsp, sp;
-		move tss, ss;
-		move tbp, bp;
-
-		PCB::running->sp = tsp;
-		PCB::running->ss = tss;
-		PCB::running->bp = tbp;
+		PCB::running->sp = _SP;
+		PCB::running->ss = _SS;
+		PCB::running->bp = _BP;
 		PCB::running->PCBlocks = locks;
 
 		if (PCB::running->state == RUNNING) {
@@ -50,15 +43,11 @@ void interrupt timer(...){
 		if ((PCB::running = Scheduler::get()) == nullptr) PCB::running = PCB::idler();
 		else PCB::running->state = RUNNING;
 
-		timeLeft = PCB::running->timerPasses;
-		tsp = PCB::running->sp;
-		tss = PCB::running->ss;
-		tbp = PCB::running->bp;
+		_SP = PCB::running->sp;
+		_SS = PCB::running->ss;
+		_BP = PCB::running->bp;
 		locks = PCB::running->PCBlocks;
-
-		move sp, tsp;
-		move ss, tss;
-		move bp, tbp;
+		timeLeft = PCB::running->timerPasses;
 
 	} else if (timeLeft == 0 && locks > 0) contextReady = true;
 }

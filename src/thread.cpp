@@ -39,11 +39,39 @@ void dispatch() {
 	inte;
 }
 
-// Thread *Thread::clone() const {}
+Thread *Thread::clone() const {
+	return new Thread(myPCB->stackSize * sizeof(unsigned), myPCB->timerPasses);
+}
 
-// ID Thread::fork() { return 0; }
+ID Thread::fork(){
+	lock;
 
-// void Thread::waitForForkChildren() {}
+	Thread* child = PCB::running->thread->clone();
+	if (!child || !child->myPCB || !child->myPCB->stack) {
+		delete child;
+		return -1;
+	}
 
-// void Thread::exit() { }
+	PCB::forkChild = child->myPCB;
+
+	PCB::fork();
+
+	if (child->myPCB->id == PCB::running->id) return 0;
+
+	PCB::running->children++;
+	child->myPCB->parent = (PCB*) PCB::running;
+	child->start();
+
+	unlock;
+
+	return child->myPCB->id;
+}
+
+void Thread::waitForForkChildren() {
+	PCB::waitForForkChildren();
+}
+
+void Thread::exit() {
+	PCB::exit();
+}
 

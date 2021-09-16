@@ -111,12 +111,10 @@ public:
 
 	void operator++() {
 		if (tail) walk = tail;
-		// else cout << "Tail doesnt exist" << endl;
 	}
 
 	void operator--() {
 		if (head) walk = head;
-		// else cout << "Head doesnt exist" << endl;
 	}
 
 	T get() {

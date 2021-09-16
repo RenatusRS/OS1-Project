@@ -1,5 +1,5 @@
 #include "helper.h"
-#define Test15
+#define Test9S
 
 #ifdef Test1
 /*
@@ -1048,6 +1048,510 @@ int userMain(int argc, char** argv)
 	return 0;
 }
 #endif
+
+#ifdef Test3S
+/**
+ * USER3.CPP
+ *
+ * Tests threads which simply echo the message passed a specified amount of
+ * times in specified intervals.
+ */
+#include <helper.h>
+
+ void dumbSleep(int delay) {
+      for (int i = 0; i < 1000; ++i) {
+          for (int j = 0; j < delay; ++j);
+      }
+  }
+
+class EchoThread : public Thread {
+    public:
+        EchoThread(const char* message, unsigned times=1, unsigned delay=1) :
+            Thread(1024, 20), message(message), times(times), delay(delay) {}
+        virtual void run();
+        ~EchoThread() {
+            waitToComplete();
+        }
+    private:
+        const char* message;
+        unsigned times;
+        unsigned delay;
+};
+
+void EchoThread::run() {
+    syncPrintf("First message from thread %d\n", getId());
+    for (unsigned i = 0; i < times; ++i) {
+        syncPrintf("%s from thread %d\n", message, getId());
+        dumbSleep(delay * 1000);
+    }
+    syncPrintf("Last message from thread %d\n", getId());
+}
+
+void tick() {}
+
+int userMain(int argc, char* argv[]) {
+    (void) argc;
+    (void) argv;
+    lock;
+    EchoThread** threads = new EchoThread*[256];
+    unlock;
+    for (unsigned i = 0; i < 256; ++i) {
+        lock;
+        threads[i] = new EchoThread("ECHO", i % 4, i % 10);
+        unlock;
+        threads[i]->start();
+        if (i % 20 == 0) {
+            syncPrintf("Dispatching main\n");
+            dispatch();
+        }
+    }
+    for (unsigned j = 0; j < 256; ++j) {
+        // We cannot wait for a thread to complete while interrupts are locked!
+        threads[j]->waitToComplete();
+        lock;
+        delete threads[j];
+        unlock;
+    }
+    lock;
+    delete[] threads;
+    unlock;
+    return 0;
+}
+
+#endif
+
+#ifdef Test5S
+/**
+ * USER5.CPP
+ *
+ * Tests whether a simple producer-consumer chain works.
+ */
+#include <helper.h>
+
+Semaphore sem;
+
+  void dumbSleep(int delay) {
+      for (int i = 0; i < 1000; ++i) {
+          for (int j = 0; j < delay; ++j);
+      }
+  }
+
+class Producer : public Thread {
+    public:
+        Producer() : Thread(1024, 10) {}
+        virtual void run();
+        ~Producer() {
+            waitToComplete();
+        }
+};
+
+void Producer::run() {
+    while (true) {
+        syncPrintf("Prodooc\n");
+        sem.signal();
+        dumbSleep(rand() % 1000);
+    }
+}
+
+class Consumer : public Thread {
+    public:
+        Consumer() : Thread(1024, 10) {}
+        virtual void run();
+        ~Consumer() {
+            waitToComplete();
+        }
+};
+
+void Consumer::run() {
+    while (true) {
+        int waitResult = sem.wait(0);
+        if (waitResult) {
+            syncPrintf("Consoomed %d\n", getId());
+        } else {
+            syncPrintf("CONSOOM FAILED %d\n", getId());
+        }
+        dumbSleep(rand() % 1000);
+    }
+}
+
+void tick() {}
+
+int userMain(int argc, char* argv[]) {
+    (void) argc;
+    (void) argv;
+    Producer p;
+    Consumer c[10];
+    lock;
+    p.start();
+    for (unsigned i = 0; i < 10; ++i) {
+        c[i].start();
+    }
+    unlock;
+    return 0;
+}
+
+#endif
+
+#ifdef Test6S
+/**
+ * USER6.CPP
+ *
+ * Tests whether a simple keyboard event listener works.
+ */
+#include <helper.h>
+
+PREPAREENTRY(0x9, true)
+
+void tick() {}
+
+int userMain(int argc, char* argv[]) {
+    (void) argc;
+    (void) argv;
+    Event evt(0x9);
+    for (unsigned i = 0; i < 64; ++i) {
+        syncPrintf("Key %d\n", i);
+        evt.wait();
+    }
+    return 0;
+}
+
+#endif
+
+#ifdef Test7S
+/**
+ * USER7.CPP
+ *
+ * Creates the maximum amount of threads possible within the system memory
+ * and frees them, hoping nothing will go wrong.
+ */
+#include <helper.h>
+
+class OveruseThread : public Thread {
+    public:
+        OveruseThread() : Thread(1024, 20) {}
+        virtual void run() {
+            syncPrintf("This should not happen.\n");
+        }
+        ~OveruseThread() {
+            waitToComplete();
+        }
+};
+
+void tick() {}
+
+Thread* threads[500];
+
+int userMain(int argc, char* argv[]) {
+    (void) argc;
+    (void) argv;
+    unsigned i = 0;
+    for (; i < 500; ++i) {
+        syncPrintf("Creating %d\n", i);
+        lock;
+        threads[i] = new OveruseThread();
+        unlock;
+        if (threads[i] == nullptr || threads[i]->getId() == -1) {
+            syncPrintf("Failed at index %d\n", i);
+            if (threads[i] != nullptr) {
+                lock;
+                delete threads[i];
+                unlock;
+            }
+            break;
+        }
+    }
+    for (unsigned j = 0; j < i; ++j) {
+        lock;
+        delete threads[j];
+        unlock;
+    }
+    syncPrintf("Done\n");
+    return 0;
+}
+
+#endif
+
+#ifdef Test8S
+/**
+ * USER8.CPP
+ *
+ * Waits for a few threads to exit and then explicitly exits the program.
+ */
+#include <helper.h>
+
+  void dumbSleep(int delay) {
+      for (int i = 0; i < 1000; ++i) {
+          for (int j = 0; j < delay; ++j);
+      }
+  }
+
+class ExitThread : public Thread {
+    public:
+        ExitThread() : Thread(1024, 1) {}
+        virtual void run();
+        ~ExitThread() {
+            waitToComplete();
+        }
+};
+
+void ExitThread::run() {
+    syncPrintf("Thread %d sleeping\n", getId());
+    dumbSleep(rand() % 1000);
+    syncPrintf("Thread %d exiting\n", getId());
+    exit();
+}
+
+void tick() {}
+
+int userMain(int argc, char* argv[]) {
+    (void) argc;
+    (void) argv;
+    ExitThread threads[20];
+    for (unsigned i = 0; i < 20; ++i) {
+        threads[i].start();
+    }
+    dispatch();
+    dispatch();
+    dispatch();
+    dispatch();
+    syncPrintf("You've had your chance!\n");
+    Thread::exit();
+    return 0;
+}
+
+#endif
+
+#ifdef Test9S
+/**
+ * USER9.CPP
+ *
+ * Creates as many child threads as possible and then exits them all.
+ * Child threads are never actually removed from memory, only terminated.
+ */
+#include <helper.h>
+
+  void dumbSleep(int delay) {
+      for (int i = 0; i < 1000; ++i) {
+          for (int j = 0; j < delay; ++j);
+      }
+  }
+
+class ForkThread : public Thread {
+    public:
+        ForkThread() : Thread(1024, 1) {}
+        virtual void run();
+        virtual Thread* clone() const {
+            return new ForkThread();
+        }
+        ~ForkThread() {
+            waitToComplete();
+        }
+        static volatile int failedFork;
+};
+
+volatile int ForkThread::failedFork = false;
+
+void ForkThread::run() {
+    while (!failedFork) {
+        ID forked = fork();
+        if (forked < 0) {
+            syncPrintf("Failed to fork in thread %d!\n", getRunningId());
+            failedFork = true;
+            break;
+        } else if (forked == 0) {
+            syncPrintf("We are in child %d\n", getRunningId());
+        } else {
+            syncPrintf("Cloned thread: %d\n", forked);
+            dumbSleep(10000);
+        }
+    }
+    waitForForkChildren();
+}
+
+void tick() {}
+
+int userMain(int argc, char* argv[]) {
+    (void) argc;
+    (void) argv;
+    ForkThread t;
+    t.start();
+    return 0;
+}
+
+#endif
+
+#ifdef Test10S
+/**
+ * USER10.CPP
+ *
+ * Creates as many child threads as possible and then exits them all.
+ * Same as USER9.CPP but forks the main thread instead.
+ */
+#include <helper.h>
+
+volatile int failedFork = false;
+
+void tick() {}
+
+int userMain(int argc, char* argv[]) {
+    (void) argc;
+    (void) argv;
+    while (!failedFork) {
+        ID forked = Thread::fork();
+        if (forked < 0) {
+            syncPrintf("Failed to fork in thread %d!\n", Thread::getRunningId());
+            failedFork = true;
+            break;
+        } else if (forked == 0) {
+            syncPrintf("We are in child %d\n", Thread::getRunningId());
+        } else {
+            syncPrintf("Cloned thread: %d\n", forked);
+        }
+    }
+    Thread::waitForForkChildren();
+    return 0;
+}
+
+#endif
+
+#ifdef Test11S
+/**
+ * USER11.CPP
+ *
+ * Producer/consumer example but with fork().
+ */
+#include <helper.h>
+
+void tick() {}
+
+Semaphore sem;
+
+  void dumbSleep(int delay) {
+      for (int i = 0; i < 1000; ++i) {
+          for (int j = 0; j < delay; ++j);
+      }
+  }
+
+void produce() {
+    while (true) {
+        syncPrintf("Prodooc\n");
+        sem.signal();
+        dumbSleep(rand() % 1000);
+    }
+}
+
+void consume() {
+    while (true) {
+        int waitResult = sem.wait(0);
+        if (waitResult) {
+            syncPrintf("Consoomed %d\n", Thread::getRunningId());
+        } else {
+            syncPrintf("CONSOOM FAILED %d\n", Thread::getRunningId());
+        }
+        dumbSleep(rand() % 1000);
+    }
+}
+
+class ForkThread : public Thread {
+    public:
+        ForkThread() : Thread(1024, 1) {}
+        ~ForkThread() {
+            waitToComplete();
+        }
+        virtual Thread* clone() const {
+            return new ForkThread();
+        }
+        virtual void run();
+};
+
+void ForkThread::run() {
+    ID lastId;
+    for (unsigned i = 0; i < 11; ++i) {
+        lastId = fork();
+        if (lastId < 0) {
+            syncPrintf("Failed to fork on index %u!\n", lastId);
+            return;
+        } else if (lastId > 0) {
+            if (i == 0) {
+                produce();
+            } else {
+                consume();
+            }
+        }
+    }
+    waitForForkChildren();
+}
+
+int userMain(int argc, char* argv[]) {
+    (void) argc;
+    (void) argv;
+    ForkThread t;
+    t.start();
+    return 0;
+}
+
+#endif
+
+#ifdef Test12S
+/**
+ * USER12.CPP
+ *
+ * 3rd task on first colloquium, march 2015.
+ */
+#include <helper.h>
+
+void tick() {}
+
+void writer(char* c, int* flag) {
+    while (1) {
+        while (*flag == 1);
+        cin >> (*c);
+        *flag = 1;
+    }
+}
+
+void reader(char* c, int* flag) {
+    while (1) {
+        while (*flag == 0);
+        cout << (*c);
+        *flag = 0;
+    }
+}
+
+void pipe() {
+    static char c;
+    static int flag = 0;
+    if (Thread::fork()) {
+        writer(&c,&flag);
+    } else {
+        reader(&c,&flag);
+    }
+}
+
+class ForkThread : public Thread {
+    public:
+        ForkThread() : Thread(1024, 1) {}
+        ~ForkThread() {
+            waitToComplete();
+        }
+        virtual Thread* clone() const {
+            return new ForkThread();
+        }
+        virtual void run() {
+            pipe();
+        }
+};
+
+int userMain(int argc, char* argv[]) {
+    (void) argc;
+    (void) argv;
+    ForkThread t;
+    t.start();
+    return 0;
+}
+
+#endif
+
 
 int main(int argc, char **argv) {
 
