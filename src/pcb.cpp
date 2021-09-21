@@ -107,7 +107,7 @@ Thread *PCB::getThreadById(ID id) {
 	return nullptr;
 }
 
-void PCB::exit(){
+void PCB::exit() {
 	lock;
 	running->state = TERMINATING;
 
@@ -125,14 +125,14 @@ void PCB::exit(){
 	dispatch();
 }
 
-void PCB::waitForForkChildren(){
+void PCB::waitForForkChildren() {
 	if (running->children > 0) {
 		running->state = CHILD_SUSPENDED;
 		dispatch();
 	}
 }
 
-void interrupt PCB::fork(){
+void interrupt PCB::fork() {
 	memcpy(forkChild->stack, running->stack, running->stackSize);
 
 	forkChild->bp = forkChild->sp = _SI = _BP - FP_OFF(running->stack) + FP_OFF(forkChild->stack);  // BasePointer - oldStack + newStack

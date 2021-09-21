@@ -18,7 +18,7 @@ void restore() {
 	inte;
 }
 
-void interrupt timer(...){
+void interrupt timer(...) {
 	if (!call) {
 		ttimer();
 		KernelSem::decrease();

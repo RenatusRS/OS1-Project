@@ -43,7 +43,7 @@ Thread *Thread::clone() const {
 	return new Thread(myPCB->stackSize, myPCB->PCBtimePass);
 }
 
-ID Thread::fork(){
+ID Thread::fork() {
 	lock;
 
 	Thread* child = PCB::running->thread->clone();
