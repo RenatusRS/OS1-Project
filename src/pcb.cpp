@@ -5,19 +5,13 @@ volatile Vector<PCB *> PCB::threads;
 volatile ID PCB::globalID = 0;
 PCB* PCB::forkChild = nullptr;
 
-PCB::PCB(StackSize stackSize, Time timeSlice, Thread *thread, void (*target)()) :
-		state(INITIALIZING),
-		PCBlocks(0),
-		semaphorSignaled(false),
-		thread(thread),
-		timerPasses(timeSlice),
-		semaphorTime(0),
-		semaphorLeft(0),
-		children(0),
-		parent(nullptr) {
+PCB::PCB(StackSize stackSize, Time timeSlice, Thread *thread, void target()) : stackSize(stackSize), PCBtimePass(timeSlice), thread(thread) {
+	PCBlocks = semaphorTime = semaphorLeft = children = 0;
+	state = INITIALIZING;
+	semaphorSignaled = false;
+	parent = nullptr;
 
 	stackSize /= sizeof(unsigned);
-	this->stackSize = stackSize;
 
 	lock;
 
@@ -42,16 +36,12 @@ PCB::PCB(StackSize stackSize, Time timeSlice, Thread *thread, void (*target)()) 
 }
 
 PCB::PCB() : stack(nullptr), thread(nullptr), parent(nullptr) {
-	sp = ss = bp = 0;
-	PCBlocks = 0;
-	stackSize = 0;
-	children = 0;
+	PCBlocks = semaphorTime = semaphorLeft = children = stackSize = sp = ss = bp = 0;
 
 	state = RUNNING;
-	timerPasses = defaultTimeSlice;
+	PCBtimePass = defaultTimeSlice;
 
 	semaphorSignaled = false;
-	semaphorTime = semaphorLeft = 0;
 
 	lock;
 
@@ -64,7 +54,7 @@ PCB::PCB() : stack(nullptr), thread(nullptr), parent(nullptr) {
 PCB::~PCB() {
 	lock;
 
-	if (stack != nullptr) delete[] stack;
+	delete[] stack;
 
 	for (--threads; threads.get() != this; threads++);
 	threads.remove();
@@ -74,9 +64,19 @@ PCB::~PCB() {
 
 void PCB::start() {
 	lock;
-
 	state = READY;
 	Scheduler::put(this);
+	unlock;
+}
+
+void PCB::waitToComplete() {
+	lock;
+
+	if (PCB::running != this && state != TERMINATING && state != INITIALIZING) {
+		PCB::running->state = SUSPENDED;
+		waitingForMe.pushb((PCB *) PCB::running);
+		dispatch();
+	}
 
 	unlock;
 }
@@ -93,18 +93,6 @@ void idling() {
 PCB *PCB::idler() {
 	static PCB idle(256, 1, nullptr, idling);
 	return &idle;
-}
-
-void PCB::waitToComplete() {
-	lock;
-
-	if (PCB::running != this && state != TERMINATING && state != INITIALIZING) {
-		PCB::running->state = SUSPENDED;
-		waitingForMe.pushb((PCB *) PCB::running);
-		dispatch();
-	}
-
-	unlock;
 }
 
 Thread *PCB::getThreadById(ID id) {
@@ -135,8 +123,6 @@ void PCB::exit(){
 	}
 
 	dispatch();
-
-	unlock;
 }
 
 void PCB::waitForForkChildren(){
@@ -147,27 +133,27 @@ void PCB::waitForForkChildren(){
 }
 
 void interrupt PCB::fork(){
-	memcpy(forkChild->stack, running->stack, running->stackSize * sizeof(unsigned));
+	memcpy(forkChild->stack, running->stack, running->stackSize);
 
-	forkChild->bp = forkChild->sp = _SI = _BP - FP_OFF(running->stack) + FP_OFF(forkChild->stack);	// BasePointer - oldStack + newStack
+	forkChild->bp = forkChild->sp = _SI = _BP - FP_OFF(running->stack) + FP_OFF(forkChild->stack);  // BasePointer - oldStack + newStack
 
-	_ES = forkChild->ss;			// ES = stack u detetu
-	_BX = _BP;						// BX = stari BP u roditelju
-									// SS = stack u roditelju
+	_ES = forkChild->ss;            // ES = stack u detetu
+	_BX = _BP;                      // BX = stari BP u roditelju
+                                    // SS = stack u roditelju
 
 	while (true) {
 		asm mov ax, word ptr ss:bx; // AX = [vrednost] starog BP u roditelju
 
-		if (_AX == 0) return;		// Ako je [vrednost] = 0 stigli smo do kraja
+		if (_AX == 0) return;       // Ako je [vrednost] = 0 stigli smo do kraja
 
-		_AX -= _BX; 				// AX = [vrednost] - stariBP = pomeraj izmedju dva bp
+		_AX -= _BX;                 // AX = [vrednost] - stariBP = pomeraj izmedju dva bp
 
-		_DX = _SI;					// DX = DI = trenutni BP koji menjamo, u prvom prolazu smo ga postavili gore u novom stacku
-		_DX += _AX;					// DX += AX = trenutni BP koji menjamo + pomeraj izmedju dva bp
+		_DX = _SI;                  // DX = DI = trenutni BP koji menjamo, u prvom prolazu smo ga postavili gore u novom stacku
+		_DX += _AX;                 // DX += AX = trenutni BP koji menjamo + pomeraj izmedju dva bp
 
 		asm	mov word ptr es:si, dx; // Upisujemo ispravljeni BP u dete
 
-		_BX += _AX;					// Pomeramo BX vrednost u roditelju na sledeci BP u roditelju
-		_SI = _DX;					// DI je sada DX nakon AX, tj sledeci BP u detetu
+		_BX += _AX;                 // Pomeramo BX vrednost u roditelju na sledeci BP u roditelju
+		_SI = _DX;                  // DI je sada DX nakon AX, tj sledeci BP u detetu
 	}
 }

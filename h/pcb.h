@@ -25,7 +25,7 @@ public:
 	ID id;
 	Thread *thread;
 	int PCBlocks;
-	int timerPasses;
+	int PCBtimePass;
 	State state;
 
 	bool semaphorSignaled;
@@ -34,13 +34,13 @@ public:
 
 	PCB();
 
-	PCB(StackSize stackSize, Time timeSlice, Thread *thread, void (*target)() = PCB::worker);
+	PCB(StackSize stackSize, Time timeSlice, Thread *thread, void target() = PCB::worker);
 
 	~PCB();
 
-	void waitToComplete();
-
 	void start();
+
+	void waitToComplete();
 
 	static Thread *getThreadById(ID id);
 

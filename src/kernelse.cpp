@@ -4,9 +4,7 @@ volatile Vector<KernelSem *> KernelSem::semaphores;
 
 KernelSem::KernelSem(int init) : val(init) {
 	lock;
-
 	semaphores.pushf(this);
-
 	unlock;
 }
 
@@ -25,7 +23,7 @@ int KernelSem::wait(Time maxTimeToWait) {
 	if (--val < 0) {
 		PCB::running->semaphorTime = PCB::running->semaphorLeft = maxTimeToWait;
 		PCB::running->state = SUSPENDED;
-		block.pushb((PCB *) PCB::running);
+		block.pushf((PCB *) PCB::running);
 
 		dispatch();
 	}

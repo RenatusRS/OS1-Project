@@ -2,16 +2,16 @@
 
 IVTEntry* IVTEntry::table[256] = {nullptr};
 
-IVTEntry::IVTEntry(IVTNo ivtNo, pInterrupt newRoutine) : ivtNo(ivtNo), kernelev(nullptr), oldRoutine(getvect(ivtNo))  {
+IVTEntry::IVTEntry(IVTNo ivtNo, pInterrupt newRt) : ivtNo(ivtNo), kernelev(nullptr), oldRt(getvect(ivtNo))  {
     intd;
-    setvect(ivtNo, newRoutine);
+    setvect(ivtNo, newRt);
 	table[ivtNo] = this;
 	inte;
 }
 
 IVTEntry::~IVTEntry() {
     intd;
-    setvect(ivtNo, oldRoutine);
+    setvect(ivtNo, oldRt);
     inte;
 }
 

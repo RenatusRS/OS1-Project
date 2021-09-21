@@ -16,6 +16,10 @@ void Thread::start() {
 	myPCB->start();
 }
 
+void Thread::waitToComplete() {
+	myPCB->waitToComplete();
+}
+
 ID Thread::getId() {
 	return myPCB->id;
 }
@@ -28,10 +32,6 @@ Thread *Thread::getThreadById(ID id) {
 	return PCB::getThreadById(id);
 }
 
-void Thread::waitToComplete() {
-	myPCB->waitToComplete();
-}
-
 void dispatch() {
 	intd;
 	call = true;
@@ -40,7 +40,7 @@ void dispatch() {
 }
 
 Thread *Thread::clone() const {
-	return new Thread(myPCB->stackSize * sizeof(unsigned), myPCB->timerPasses);
+	return new Thread(myPCB->stackSize, myPCB->PCBtimePass);
 }
 
 ID Thread::fork(){

@@ -1,7 +1,7 @@
 #include "helper.h"
 
 pInterrupt ttimer;
-volatile int timeLeft = defaultTimeSlice;
+volatile int timePass = defaultTimeSlice;
 
 void tick();
 
@@ -24,10 +24,10 @@ void interrupt timer(...){
 		KernelSem::decrease();
 		tick();
 
-		timeLeft -= timeLeft > 0;
+		timePass -= timePass > 0;
 	}
 
-	if (call || (timeLeft == 0 && locks == 0 && PCB::running->timerPasses != 0)) {
+	if (call || (timePass == 0 && locks == 0 && PCB::running->PCBtimePass != 0)) {
 		call = contextReady = false;
 
 		PCB::running->sp = _SP;
@@ -40,14 +40,14 @@ void interrupt timer(...){
 			Scheduler::put((PCB*) PCB::running);
 		}
 
-		if ((PCB::running = Scheduler::get()) == nullptr) PCB::running = PCB::idler();
-		else PCB::running->state = RUNNING;
+		if ((PCB::running = Scheduler::get()) != nullptr) PCB::running->state = RUNNING;
+		else PCB::running = PCB::idler();
 
 		_SP = PCB::running->sp;
 		_SS = PCB::running->ss;
 		_BP = PCB::running->bp;
 		locks = PCB::running->PCBlocks;
-		timeLeft = PCB::running->timerPasses;
+		timePass = PCB::running->PCBtimePass;
 
-	} else if (timeLeft == 0 && locks > 0) contextReady = true;
+	} else if (timePass == 0 && locks > 0) contextReady = true;
 }

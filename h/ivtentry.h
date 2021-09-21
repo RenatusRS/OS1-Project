@@ -3,14 +3,13 @@
 
 #include "helper.h"
 
-#define PREPAREENTRY(ivtNum, callOld)								\
-		extern IVTEntry ivtEntry##ivtNum;							\
-		void interrupt interruptEvent##ivtNum(...) {				\
-			ivtEntry##ivtNum.signal();								\
-			if (callOld) ivtEntry##ivtNum.oldRoutine();				\
-			dispatch();												\
-		}															\
-		IVTEntry ivtEntry##ivtNum(ivtNum, interruptEvent##ivtNum);	\
+#define PREPAREENTRY(num, callOld)                    \
+		extern IVTEntry ivtEntry##num;                \
+		void interrupt intrEv##num(...) {             \
+			ivtEntry##num.signal();                   \
+			if (callOld) ivtEntry##num.oldRt();       \
+		}                                             \
+		IVTEntry ivtEntry##num(num, intrEv##num);     \
 
 class IVTEntry {
 public:
@@ -18,9 +17,10 @@ public:
 
     IVTNo ivtNo;
     KernelEv *kernelev;
-    pInterrupt oldRoutine;
+    pInterrupt oldRt;
 
-    IVTEntry(IVTNo num, pInterrupt newRoutine);
+    IVTEntry(IVTNo ivtNo, pInterrupt newRt);
+
     ~IVTEntry();
 
     void signal();

@@ -14,7 +14,6 @@
 #include "ivtentry.h"
 
 PREPAREENTRY(9,0);
-  
 //---------------------------------------------------------------------------//
 //  Podeseno za qwerty tastature
 //  Tabela nije potpuna
