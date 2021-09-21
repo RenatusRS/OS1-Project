@@ -148,12 +148,12 @@ void interrupt PCB::fork(){
 
 		_AX -= _BX;                 // AX = [vrednost] - stariBP = pomeraj izmedju dva bp
 
-		_DX = _SI;                  // DX = DI = trenutni BP koji menjamo, u prvom prolazu smo ga postavili gore u novom stacku
+		_DX = _SI;                  // DX = SI = trenutni BP koji menjamo, u prvom prolazu smo ga postavili gore u novom stacku
 		_DX += _AX;                 // DX += AX = trenutni BP koji menjamo + pomeraj izmedju dva bp
 
 		asm	mov word ptr es:si, dx; // Upisujemo ispravljeni BP u dete
 
 		_BX += _AX;                 // Pomeramo BX vrednost u roditelju na sledeci BP u roditelju
-		_SI = _DX;                  // DI je sada DX nakon AX, tj sledeci BP u detetu
+		_SI = _DX;                  // SI je sada DX nakon AX, tj sledeci BP u detetu
 	}
 }
