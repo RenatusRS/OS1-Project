@@ -6,7 +6,7 @@ volatile ID PCB::globalID = 0;
 PCB* PCB::forkChild = nullptr;
 
 PCB::PCB(StackSize stackSize, Time timeSlice, Thread *thread, void target()) : stackSize(stackSize), PCBtimePass(timeSlice), thread(thread) {
-	PCBlocks = semaphorTime = semaphorLeft = children = 0;
+	PCBlocks = semaphorTime = semaphorLeft = 0;
 	state = INITIALIZING;
 	semaphorSignaled = false;
 	parent = nullptr;
@@ -36,7 +36,7 @@ PCB::PCB(StackSize stackSize, Time timeSlice, Thread *thread, void target()) : s
 }
 
 PCB::PCB() : stack(nullptr), thread(nullptr), parent(nullptr) {
-	PCBlocks = semaphorTime = semaphorLeft = children = stackSize = sp = ss = bp = 0;
+	PCBlocks = semaphorTime = semaphorLeft = stackSize = sp = ss = bp = 0;
 
 	state = RUNNING;
 	PCBtimePass = defaultTimeSlice;
@@ -117,16 +117,24 @@ void PCB::exit() {
 		Scheduler::put((PCB*) releasePCB);
 	}
 
-	if (running->parent && --running->parent->children == 0 && running->parent->state == CHILD_SUSPENDED) {
-		running->parent->state = READY;
-		Scheduler::put((PCB*) running->parent);
+	if (running->parent) {
+
+		for (--running->parent->children; running->parent->children.get() != running; running->parent->children++);
+		running->parent->children.remove();
+
+		if (running->parent->children.size == 0 && running->parent->state == CHILD_SUSPENDED) {
+			running->parent->state = READY;
+			Scheduler::put((PCB*) running->parent);
+		}
 	}
+
+	for (--running->children; running->children.get() != nullptr; running->children++) ((PCB*) running->children.get())->parent = nullptr;
 
 	dispatch();
 }
 
 void PCB::waitForForkChildren() {
-	if (running->children > 0) {
+	if (running->children.size > 0) {
 		running->state = CHILD_SUSPENDED;
 		dispatch();
 	}

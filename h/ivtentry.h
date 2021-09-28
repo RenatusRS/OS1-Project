@@ -15,13 +15,10 @@ class IVTEntry {
 public:
     static IVTEntry *table[256];
 
-    IVTNo ivtNo;
     KernelEv *kernelev;
     pInterrupt oldRt;
 
     IVTEntry(IVTNo ivtNo, pInterrupt newRt);
-
-    ~IVTEntry();
 
     void signal();
 };

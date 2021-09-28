@@ -58,7 +58,7 @@ ID Thread::fork() {
 
 	if (child->myPCB->id == PCB::running->id) return 0;
 
-	PCB::running->children++;
+	PCB::running->children.pushf(child->myPCB);
 	child->myPCB->parent = (PCB*) PCB::running;
 	child->start();
 
