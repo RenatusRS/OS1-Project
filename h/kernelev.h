@@ -5,7 +5,6 @@
 
 class KernelEv {
 	IVTNo ivtNo;
-	bool blocked;
 	PCB *pcb;
 
 public:

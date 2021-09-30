@@ -3,13 +3,17 @@
 
 template<class T>
 class Vector {
-private:
 	struct Node {
 		T info;
 		Node *prev;
 		Node *next;
 
 		Node(T info, Node *prev = nullptr, Node *next = nullptr) : info(info), prev(prev), next(next) {}
+		~Node() {
+			if (prev) prev->next = next;
+
+			if (next) next->prev = prev;
+		}
 	};
 
 	Node *head;
@@ -27,9 +31,7 @@ public:
 		lock;
 		while (head != nullptr) {
 			next = head->next;
-
 			delete head;
-
 			head = next;
 		}
 		unlock;
@@ -68,7 +70,6 @@ public:
 		if (tail->prev != nullptr) {
 			tail = tail->prev;
 			delete tail->next;
-			tail->next = nullptr;
 		} else {
 			delete tail;
 			head = tail = nullptr;
@@ -89,7 +90,6 @@ public:
 		if (head->next != nullptr) {
 			head = head->next;
 			delete head->prev;
-			head->prev = nullptr;
 		} else {
 			delete head;
 			head = tail = nullptr;
@@ -110,20 +110,15 @@ public:
 	}
 
 	void operator++() {
-		if (tail) walk = tail;
+		walk = tail;
 	}
 
 	void operator--() {
-		if (head) walk = head;
+		walk = head;
 	}
 
 	T get() {
-		if (walk) {
-			return walk->info;
-		} else {
-			// cout << "Err" << endl;
-			return 0;
-		}
+		return walk ? walk->info : nullptr;
 	}
 
 	void remove() {
@@ -133,15 +128,11 @@ public:
 		if (walk == head) head = head->next;
 		if (walk == tail) tail = tail->prev;
 
-		if (walk->prev) walk->prev->next = walk->next;
-		if (walk->next) walk->next->prev = walk->prev;
-
 		delete walk;
 
 		walk = head;
 		size--;
 		unlock;
-
 	}
 };
 

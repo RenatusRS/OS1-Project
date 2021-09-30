@@ -1,33 +1,33 @@
 #include "helper.h"
 
-pInterrupt ttimer;
-volatile int timePass = defaultTimeSlice;
+pInterrupt oldTimer;
+volatile int timeSlice = defaultTimeSlice;
 
 void tick();
 
 void inic() {
 	intd;
-	ttimer = getvect(8);
+	oldTimer = getvect(8);
 	setvect(8, timer);
 	inte;
 }
 
 void restore() {
 	intd;
-	setvect(8, ttimer);
+	setvect(8, oldTimer);
 	inte;
 }
 
 void interrupt timer(...) {
 	if (!call) {
-		ttimer();
+		oldTimer();
 		KernelSem::decrease();
 		tick();
 
-		timePass -= timePass > 0;
+		timeSlice -= timeSlice > 0;
 	}
 
-	if (call || (timePass == 0 && locks == 0 && PCB::running->PCBtimePass != 0)) {
+	if (call || (timeSlice == 0 && locks == 0 && PCB::running->PCBtimeSlice != 0)) {
 		call = contextReady = false;
 
 		PCB::running->sp = _SP;
@@ -47,7 +47,7 @@ void interrupt timer(...) {
 		_SS = PCB::running->ss;
 		_BP = PCB::running->bp;
 		locks = PCB::running->PCBlocks;
-		timePass = PCB::running->PCBtimePass;
+		timeSlice = PCB::running->PCBtimeSlice;
 
-	} else if (timePass == 0 && locks > 0) contextReady = true;
+	} else if (timeSlice == 0 && locks > 0) contextReady = true;
 }

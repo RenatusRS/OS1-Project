@@ -40,7 +40,7 @@ void dispatch() {
 }
 
 Thread *Thread::clone() const {
-	return new Thread(myPCB->stackSize, myPCB->PCBtimePass);
+	return new Thread(myPCB->stackSize, myPCB->PCBtimeSlice);
 }
 
 ID Thread::fork() {

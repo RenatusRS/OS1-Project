@@ -21,7 +21,7 @@ int KernelSem::wait(Time maxTimeToWait) {
 	lock;
 
 	if (--val < 0) {
-		PCB::running->semaphorTime = PCB::running->semaphorLeft = maxTimeToWait;
+		PCB::running->semaphorTime = maxTimeToWait;
 		PCB::running->state = SUSPENDED;
 		block.pushf((PCB *) PCB::running);
 
@@ -52,7 +52,7 @@ void KernelSem::decrease() {
 
 	for (--semaphores; (semaphore = semaphores.get()) != nullptr; semaphores++) {
 		for (--semaphore->block; (pcb = semaphore->block.get()) != nullptr; semaphore->block++) {
-			if (pcb->semaphorTime != 0 && --pcb->semaphorLeft == 0) {
+			if (pcb->semaphorTime != 0 && --pcb->semaphorTime == 0) {
 				pcb->semaphorSignaled = false;
 
 				pcb->state = READY;

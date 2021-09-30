@@ -1,6 +1,6 @@
 #include "helper.h"
 
-KernelEv::KernelEv(IVTNo ivtNo) : ivtNo(ivtNo), pcb((PCB*) PCB::running), blocked(false) {
+KernelEv::KernelEv(IVTNo ivtNo) : ivtNo(ivtNo), pcb((PCB*) PCB::running) {
 	IVTEntry::table[ivtNo]->kernelev = this;
 }
 
@@ -12,18 +12,18 @@ KernelEv::~KernelEv() {
 
 void KernelEv::wait() {
 	if (pcb == PCB::running) {
-		blocked = true;
-		pcb->state = SUSPENDED;
+		pcb->state = SUSPENDED_EVENT;
 		dispatch();
 	}
 }
 
 void KernelEv::signal() {
-	if (blocked) {
-    	blocked = false;
+	lock;
+	if (pcb->state == SUSPENDED_EVENT) {
     	pcb->state = READY;
     	Scheduler::put(pcb);
     }
+	unlock;
 
 	dispatch();
 }

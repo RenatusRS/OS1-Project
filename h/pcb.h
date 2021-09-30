@@ -4,7 +4,7 @@
 #include "helper.h"
 
 enum State {
-	INITIALIZING, READY, RUNNING, SUSPENDED, TERMINATING, CHILD_SUSPENDED
+	INITIALIZING, READY, RUNNING, SUSPENDED, TERMINATING, SUSPENDED_EVENT, CHILD_SUSPENDED
 };
 
 class PCB {
@@ -13,9 +13,9 @@ private:
 
 public:
 	volatile static PCB *running;
-	volatile static Vector<PCB *> threads;
+	volatile static Vector<PCB*> threads;
 
-	Vector<PCB*> waitingForMe;
+	Vector<PCB*> waiting;
 	Vector<PCB*> children;
 
 	unsigned *stack;
@@ -26,16 +26,15 @@ public:
 	ID id;
 	Thread *thread;
 	int PCBlocks;
-	int PCBtimePass;
+	int PCBtimeSlice;
 	State state;
 
 	bool semaphorSignaled;
 	Time semaphorTime;
-	Time semaphorLeft;
 
 	PCB();
 
-	PCB(StackSize stackSize, Time timeSlice, Thread *thread, void target() = PCB::worker);
+	PCB(StackSize stackSize, Time timeSlice, Thread *thread, void target() = PCB::wrapper);
 
 	~PCB();
 
@@ -45,7 +44,7 @@ public:
 
 	static Thread *getThreadById(ID id);
 
-	static void worker();
+	static void wrapper();
 
 	static PCB *idler();
 

@@ -5,8 +5,8 @@ volatile Vector<PCB *> PCB::threads;
 volatile ID PCB::globalID = 0;
 PCB* PCB::forkChild = nullptr;
 
-PCB::PCB(StackSize stackSize, Time timeSlice, Thread *thread, void target()) : stackSize(stackSize), PCBtimePass(timeSlice), thread(thread) {
-	PCBlocks = semaphorTime = semaphorLeft = 0;
+PCB::PCB(StackSize stackSize, Time timeSlice, Thread *thread, void target()) : stackSize(stackSize), PCBtimeSlice(timeSlice), thread(thread) {
+	PCBlocks = semaphorTime = 0;
 	state = INITIALIZING;
 	semaphorSignaled = false;
 	parent = nullptr;
@@ -36,10 +36,10 @@ PCB::PCB(StackSize stackSize, Time timeSlice, Thread *thread, void target()) : s
 }
 
 PCB::PCB() : stack(nullptr), thread(nullptr), parent(nullptr) {
-	PCBlocks = semaphorTime = semaphorLeft = stackSize = sp = ss = bp = 0;
+	PCBlocks = semaphorTime = stackSize = sp = ss = bp = 0;
 
 	state = RUNNING;
-	PCBtimePass = defaultTimeSlice;
+	PCBtimeSlice = defaultTimeSlice;
 
 	semaphorSignaled = false;
 
@@ -74,14 +74,14 @@ void PCB::waitToComplete() {
 
 	if (PCB::running != this && state != TERMINATING && state != INITIALIZING) {
 		PCB::running->state = SUSPENDED;
-		waitingForMe.pushb((PCB *) PCB::running);
+		waiting.pushb((PCB *) PCB::running);
 		dispatch();
 	}
 
 	unlock;
 }
 
-void PCB::worker() {
+void PCB::wrapper() {
 	running->thread->run();
 	PCB::exit();
 }
@@ -97,22 +97,18 @@ PCB *PCB::idler() {
 
 Thread *PCB::getThreadById(ID id) {
 	lock;
-
-	for (--threads; threads.get() != nullptr; threads++) if (threads.get()->id == id) {
-		unlock;
-		return threads.get()->thread;
-	}
-
+	for (--threads; threads.get() != nullptr && threads.get()->id != id; threads++);
 	unlock;
-	return nullptr;
+
+	return threads.get() ? threads.get()->thread : nullptr;
 }
 
 void PCB::exit() {
 	lock;
 	running->state = TERMINATING;
 
-	while (running->waitingForMe.size) {
-		PCB *releasePCB = running->waitingForMe.popb();
+	while (running->waiting.size) {
+		PCB *releasePCB = running->waiting.popb();
 		releasePCB->state = READY;
 		Scheduler::put((PCB*) releasePCB);
 	}
@@ -143,7 +139,7 @@ void PCB::waitForForkChildren() {
 void interrupt PCB::fork() {
 	memcpy(forkChild->stack, running->stack, running->stackSize);
 
-	forkChild->bp = forkChild->sp = _SI = _BP - FP_OFF(running->stack) + FP_OFF(forkChild->stack);  // BasePointer - oldStack + newStack
+	forkChild->bp = forkChild->sp = _SI = _BP - FP_OFF(running->stack) + FP_OFF(forkChild->stack);  // BP - StariStack = indeks gde se BP nalazi u starom stacku. Dodamo na to novi stack.
 
 	_ES = forkChild->ss;            // ES = stack u detetu
 	_BX = _BP;                      // BX = stari BP u roditelju

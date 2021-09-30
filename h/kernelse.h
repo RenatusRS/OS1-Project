@@ -16,7 +16,7 @@ public:
 
 	void signal();
 
-	volatile static Vector<KernelSem *> semaphores;
+	volatile static Vector<KernelSem*> semaphores;
 
 	static void decrease();
 };
