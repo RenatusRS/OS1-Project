@@ -16,7 +16,6 @@ public:
 	volatile static Vector<PCB*> threads;
 
 	Vector<PCB*> waiting;
-	Vector<PCB*> children;
 
 	unsigned *stack;
 	unsigned sp;
@@ -50,6 +49,7 @@ public:
 
 	// Fork
 
+	Vector<PCB*> children;
 	StackSize stackSize;
 	PCB* parent;
 	static PCB* forkChild;
