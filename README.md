@@ -1,6 +1,6 @@
 # Multithreaded Kernel with Fork implementation
 
-> Project for **Operating System 1** class at **UoB ETF** in the **2020/2021** school year
+> Project for **Operating Systems 1** class at **UoB ETF** in the **2020/2021** school year
 
 Simple kernel written in C++ for 8086 CPU.
 
